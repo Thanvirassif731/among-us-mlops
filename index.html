@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Among Us MLOps Predictor - Sus or Safe? | Thanvir Assif</title>
+    <meta name="description" content="Discover your chances of survival in Among Us with our sleek MLOps-powered predictor. Input your game stats and get real-time insights on whether you're sus or safe. Developed by Thanvir Assif.">
+    <meta name="keywords" content="Among Us, MLOps, Survival Predictor, Sus or Safe, Game Analytics, Thanvir Assif">
+    <meta name="author" content="Thanvir Assif">
+    <meta property="og:title" content="Among Us MLOps Predictor - Sus or Safe? | Thanvir Assif">
+    <link rel="icon" href="assets/Games-Innersloth-Among-Us-Key-Art.png" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --bg-1: #030712;
+            --bg-2: #08111f;
+            --bg-3: #0f172a;
+            --glass: rgba(9, 14, 28, 0.62);
+            --glass-strong: rgba(8, 12, 24, 0.82);
+            --accent: #4ddcff;
+            --accent-2: #2f90ff;
+            --accent-soft: rgba(77, 220, 255, 0.18);
+            --text-main: #f8fbff;
+            --text-muted: #9fb0c6;
+            --border: rgba(160, 185, 255, 0.18);
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Space Grotesk', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(77, 220, 255, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(47, 144, 255, 0.14), transparent 24%),
+                radial-gradient(circle at bottom left, rgba(120, 119, 255, 0.12), transparent 22%),
+                linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            padding: 24px;
+            position: relative;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            background-image:
+                radial-gradient(circle, rgba(255, 255, 255, 0.95) 1px, transparent 1.6px),
+                radial-gradient(circle, rgba(77, 220, 255, 0.8) 1px, transparent 1.8px),
+                radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 1.4px);
+            background-size: 130px 130px, 210px 210px, 170px 170px;
+            background-position: 0 0, 40px 80px, 90px 20px;
+            opacity: 0.28;
+            animation: twinkle 10s linear infinite;
+        }
+
+        body::after {
+            background:
+                radial-gradient(circle at 20% 20%, rgba(77, 220, 255, 0.18), transparent 12%),
+                radial-gradient(circle at 80% 12%, rgba(47, 144, 255, 0.16), transparent 14%),
+                radial-gradient(circle at 70% 80%, rgba(124, 58, 237, 0.12), transparent 15%);
+            filter: blur(14px);
+            animation: drift 18s ease-in-out infinite alternate;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 460px);
+            padding: 2rem;
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(13, 19, 37, 0.72), rgba(7, 11, 22, 0.86));
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            overflow: hidden;
+            isolation: isolate;
+            animation: cardFloat 7s ease-in-out infinite;
+        }
+
+        .character-layer {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.8;
+        }
+
+        .fly-character {
+            position: absolute;
+            width: 70px;
+            height: auto;
+            user-select: none;
+            -webkit-user-drag: none;
+            transform: translate3d(var(--from-x), var(--from-y), 0) rotate(var(--rot-start));
+            animation: fly-across var(--duration) linear var(--delay) infinite;
+            filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35));
+            will-change: transform;
+        }
+
+        .fly-character.depth-near {
+            filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.38));
+        }
+
+        .fly-character.depth-mid {
+            filter: blur(0.6px) drop-shadow(0 10px 24px rgba(0, 0, 0, 0.34));
+        }
+
+        .fly-character.depth-far {
+            filter: blur(1.35px) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.28));
+        }
+
+
+        .container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 22%),
+                radial-gradient(circle at top left, rgba(77, 220, 255, 0.18), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(47, 144, 255, 0.12), transparent 25%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 30px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(77, 220, 255, 0.35), transparent 30%, rgba(47, 144, 255, 0.35));
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.65;
+        }
+
+        .badge-orbit {
+            position: absolute;
+            top: -34px;
+            right: -34px;
+            width: 108px;
+            height: 108px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(77, 220, 255, 0.2), rgba(77, 220, 255, 0.04) 58%, transparent 70%);
+            filter: blur(1px);
+            animation: pulseGlow 5s ease-in-out infinite;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            width: fit-content;
+            margin: 0 auto 1rem;
+            padding: 0.5rem;
+            /* border-radius: 999px; */
+            /* border: 1px solid rgba(77, 220, 255, 0.34); */
+            /* background: rgba(8, 14, 28, 0.72); */
+            /* box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.04); */
+        }
+
+        .brand-logo img {
+            width: 200px;
+            height: 108px;
+            border-radius: 10%;
+            object-fit: cover;
+            border: 1px solid rgba(77, 220, 255, 0.45);
+            box-shadow: 0 0 14px rgba(77, 220, 255, 0.3);
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: var(--text-main);
+            letter-spacing: 0.14em;
+            font-size: 1.7rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 18px rgba(77, 220, 255, 0.42);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin: -0.25rem 0 1.35rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.84rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(160, 185, 255, 0.18);
+            background: rgba(8, 12, 24, 0.72);
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        }
+
+        input:focus,
+        select:focus,
+        input:hover,
+        select:hover {
+            border-color: rgba(77, 220, 255, 0.75);
+            background: rgba(10, 18, 35, 0.92);
+            box-shadow:
+                0 0 0 4px rgba(77, 220, 255, 0.12),
+                0 0 18px rgba(77, 220, 255, 0.22),
+                inset 0 0 0 1px rgba(77, 220, 255, 0.18);
+            transform: translateY(-1px);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+            color: #03111e;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+            margin-top: 1.05rem;
+            box-shadow: 0 10px 30px rgba(47, 144, 255, 0.24);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+            box-shadow: 0 14px 36px rgba(77, 220, 255, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.22) 40%, transparent 75%);
+            transform: translateX(-120%);
+            transition: transform 0.7s ease;
+        }
+
+        button:hover::after {
+            transform: translateX(120%);
+        }
+
+        #results {
+            margin-top: 0;
+            padding: 0 1rem;
+            border-radius: 20px;
+            border: 1px solid rgba(77, 220, 255, 0.18);
+            background: linear-gradient(180deg, rgba(6, 12, 26, 0.9), rgba(10, 16, 31, 0.7));
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+            display: block;
+            opacity: 0;
+            transform: translateY(-14px);
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.45s ease, transform 0.45s ease, max-height 0.45s ease, margin-top 0.45s ease, padding 0.45s ease;
+            pointer-events: none;
+        }
+
+        #results.visible {
+            margin-top: 1.4rem;
+            padding: 1.1rem 1rem;
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 360px;
+            pointer-events: auto;
+        }
+
+        .result-item {
+            margin-bottom: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
+        .result-value {
+            font-weight: bold;
+            color: var(--accent);
+            font-size: 1.25rem;
+            text-shadow: 0 0 14px rgba(77, 220, 255, 0.35);
+        }
+
+        .confidence-wrap {
+            margin-top: 0.35rem;
+        }
+
+        .confidence-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(77, 220, 255, 0.12);
+            border: 1px solid rgba(77, 220, 255, 0.22);
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            width: 0%;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #61ecff, #2f90ff);
+            box-shadow: 0 0 18px rgba(77, 220, 255, 0.35);
+            transition: width 0.4s ease;
+        }
+
+        .confidence-fill.band-high {
+            background: linear-gradient(90deg, #7fff8f, #18c67a);
+            box-shadow: 0 0 18px rgba(24, 198, 122, 0.35);
+        }
+
+        .confidence-fill.band-medium {
+            background: linear-gradient(90deg, #ffd569, #ff9d2f);
+            box-shadow: 0 0 18px rgba(255, 157, 47, 0.35);
+        }
+
+        .confidence-fill.band-low {
+            background: linear-gradient(90deg, #ff8692, #ff4d64);
+            box-shadow: 0 0 18px rgba(255, 77, 100, 0.35);
+        }
+
+        .confidence-meta {
+            margin-top: 0.45rem;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            letter-spacing: 0.02em;
+        }
+
+        .confidence-meta.band-high {
+            color: #89f7ab;
+        }
+
+        .confidence-meta.band-medium {
+            color: #ffd38a;
+        }
+
+        .confidence-meta.band-low {
+            color: #ffadb7;
+        }
+
+        .live-note {
+            margin-top: 0.8rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            letter-spacing: 0.02em;
+            text-align: center;
+            opacity: 0.88;
+        }
+
+        .api-message {
+            margin-top: 0.7rem;
+            color: #ffb4ba;
+            font-size: 0.84rem;
+            display: none;
+        }
+
+        .api-message.visible {
+            display: block;
+        }
+
+        .developer-badge {
+            margin-top: 1.25rem;
+            padding: 0.95rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(160, 185, 255, 0.15);
+            background: rgba(4, 8, 18, 0.66);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+            position: sticky;
+            bottom: 0;
+        }
+
+        .developer-copy {
+            min-width: 0;
+        }
+
+        .developer-copy .version {
+            display: inline-block;
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+        }
+
+        .developer-copy .name {
+            color: var(--text-main);
+            font-size: 0.92rem;
+            line-height: 1.35;
+        }
+
+        .social-links {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .social-link {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            text-decoration: none;
+            border: 1px solid rgba(77, 220, 255, 0.22);
+            background: linear-gradient(180deg, rgba(14, 24, 44, 0.85), rgba(8, 12, 24, 0.94));
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+        }
+
+        .social-link:hover {
+            transform: translateY(-2px) scale(1.03);
+            border-color: rgba(77, 220, 255, 0.85);
+            color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(77, 220, 255, 0.08), 0 12px 26px rgba(77, 220, 255, 0.18);
+        }
+
+        .floating-dot {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(77, 220, 255, 0.95), rgba(77, 220, 255, 0.15) 55%, transparent 70%);
+            filter: blur(0.2px);
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
+        .floating-dot.one {
+            width: 10px;
+            height: 10px;
+            top: 14%;
+            left: 10%;
+            animation: floatOne 8s ease-in-out infinite;
+        }
+
+        .floating-dot.two {
+            width: 14px;
+            height: 14px;
+            top: 26%;
+            right: 8%;
+            animation: floatTwo 10s ease-in-out infinite;
+        }
+
+        .floating-dot.three {
+            width: 8px;
+            height: 8px;
+            bottom: 18%;
+            left: 12%;
+            animation: floatThree 9s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.24; transform: scale(1); }
+            50% { opacity: 0.34; transform: scale(1.02); }
+        }
+
+        @keyframes drift {
+            0% { transform: translate3d(0, 0, 0) scale(1); }
+            100% { transform: translate3d(12px, -16px, 0) scale(1.03); }
+        }
+
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes fly-across {
+            0% {
+                transform: translate3d(var(--from-x), var(--from-y), 0) rotate(var(--rot-start));
+            }
+
+            25% {
+                transform: translate3d(calc(var(--from-x) + var(--quarter-x)), calc(var(--from-y) + var(--quarter-y)), 0) rotate(var(--rot-mid));
+            }
+
+            50% {
+                transform: translate3d(calc(var(--from-x) + var(--half-x)), calc(var(--from-y) + var(--half-y)), 0) rotate(var(--rot-mid));
+            }
+
+            75% {
+                transform: translate3d(calc(var(--from-x) + var(--three-quarter-x)), calc(var(--from-y) + var(--three-quarter-y)), 0) rotate(var(--rot-end));
+            }
+
+            100% {
+                transform: translate3d(var(--to-x), var(--to-y), 0) rotate(var(--rot-end));
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); opacity: 0.62; }
+            50% { transform: scale(1.08); opacity: 0.9; }
+        }
+
+        @keyframes floatOne {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-18px) translateX(10px); }
+        }
+
+        @keyframes floatTwo {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(16px) translateX(-8px); }
+        }
+
+        @keyframes floatThree {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-14px) translateX(6px); }
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                padding: 1.45rem;
+                border-radius: 24px;
+            }
+
+            h2 {
+                font-size: 1.45rem;
+            }
+
+            .subtitle {
+                font-size: 0.88rem;
+            }
+
+            .developer-badge {
+                padding: 0.9rem;
+            }
+
+            .social-link {
+                width: 40px;
+                height: 40px;
+            }
+
+            .brand-logo {
+                padding: 0.42rem;
+            }
+
+            .brand-logo img {
+                width: 180px;
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="character-layer" class="character-layer" aria-hidden="true"></div>
+
+    <div class="container">
+        <div class="badge-orbit"></div>
+        <span class="floating-dot one"></span>
+        <span class="floating-dot two"></span>
+        <span class="floating-dot three"></span>
+        <div class="brand-logo" aria-label="Among Us logo">
+            <img src="assets/amongus.png" alt="Among Us logo">
+        </div>
+        <h2>SUS OR SAFE?</h2>
+        <p class="subtitle">A sleek MLOps-powered survival readout from the dark reaches of space.</p>
+        <form id="predictForm">
+            <div class="form-group">
+                <label for="team">Team</label>
+                <select id="team" required>
+                    <option value="Crewmate">Crewmate</option>
+                    <option value="Imposter">Imposter</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tasks">Tasks Completed</label>
+                <input type="number" id="tasks" value="5" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="kills">Imposter Kills</label>
+                <input type="number" id="kills" value="0" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="gameLength">Game Length (Seconds)</label>
+                <input type="number" id="gameLength" value="600" min="0" required>
+            </div>
+            <button id="predictBtn" type="submit">Predict Outcome</button>
+            <div class="live-note">Live what-if mode: editing any input runs instant predictions.</div>
+        </form>
+
+        <div id="results">
+            <div class="result-item">Survival Chance: <br><span class="result-value" id="res-survival">--%</span></div>
+            <div class="result-item">Sabotages Fixed: <br><span class="result-value" id="res-sabotage">--</span></div>
+            <div class="result-item confidence-wrap">Prediction Confidence:
+                <div class="confidence-track">
+                    <div id="confidenceFill" class="confidence-fill"></div>
+                </div>
+                <div id="confidenceMeta" class="confidence-meta">--</div>
+            </div>
+            <div id="apiMessage" class="api-message"></div>
+        </div>
+
+        <div class="developer-badge" aria-label="Developer branding and social links">
+            <div class="developer-copy">
+                <div id="modelVersion" class="version">Version 1.0 Beta Testing</div>
+                <div class="name">Developed by Thanvir Assif</div>
+            </div>
+            <div class="social-links">
+                <a class="social-link" href="https://github.com/Thanvirassif731" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">
+                    <i class="fa-brands fa-github"></i>
+                </a>
+                <a class="social-link" href="https://thanvirassif.com" target="_blank" rel="noopener noreferrer" aria-label="Portfolio website">
+                    <i class="fa-solid fa-globe"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const characterLayer = document.getElementById('character-layer');
+        const characterImages = Array.from({ length: 14 }, (_, i) => `assets/characters/character${String(i + 1).padStart(2, '0')}.png`);
+
+        function randomBetween(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function pickRandom(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function applyFlightPath(el, staggered = false) {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const fromLeft = Math.random() > 0.5;
+            const depthRoll = Math.random();
+            const depth = depthRoll < 0.28 ? 'near' : depthRoll < 0.72 ? 'mid' : 'far';
+            const depthConfig = {
+                near: {
+                    sizeMin: 92,
+                    sizeMax: 150,
+                    durationMin: 13,
+                    durationMax: 20,
+                    opacityMin: 0.78,
+                    opacityMax: 0.96,
+                    driftMin: 60,
+                    driftMax: 130,
+                    yJitter: 180,
+                    rotStrength: 1.25
+                },
+                mid: {
+                    sizeMin: 62,
+                    sizeMax: 108,
+                    durationMin: 19,
+                    durationMax: 28,
+                    opacityMin: 0.55,
+                    opacityMax: 0.84,
+                    driftMin: 45,
+                    driftMax: 96,
+                    yJitter: 140,
+                    rotStrength: 1
+                },
+                far: {
+                    sizeMin: 38,
+                    sizeMax: 66,
+                    durationMin: 26,
+                    durationMax: 37,
+                    opacityMin: 0.28,
+                    opacityMax: 0.58,
+                    driftMin: 32,
+                    driftMax: 80,
+                    yJitter: 110,
+                    rotStrength: 0.72
+                }
+            }[depth];
+
+            const size = randomBetween(depthConfig.sizeMin, depthConfig.sizeMax);
+            const startY = randomBetween(-80, vh + 40);
+            const endY = startY + randomBetween(-depthConfig.yJitter, depthConfig.yJitter);
+            const fromX = fromLeft ? -size - 120 : vw + 120;
+            const toX = fromLeft ? vw + 120 : -size - 120;
+            const drift = randomBetween(-depthConfig.driftMax, depthConfig.driftMax);
+            const duration = randomBetween(depthConfig.durationMin, depthConfig.durationMax);
+            const startRot = randomBetween(-16, -4) * depthConfig.rotStrength;
+            const midRot = randomBetween(-5, 7) * depthConfig.rotStrength;
+            const endRot = randomBetween(6, 16) * depthConfig.rotStrength;
+
+            el.style.width = `${size}px`;
+            el.style.opacity = randomBetween(depthConfig.opacityMin, depthConfig.opacityMax).toFixed(2);
+            el.style.setProperty('--from-x', `${fromX}px`);
+            el.style.setProperty('--to-x', `${toX}px`);
+            el.style.setProperty('--from-y', `${startY}px`);
+            el.style.setProperty('--to-y', `${endY}px`);
+            el.style.setProperty('--quarter-x', `${(toX - fromX) * 0.25}px`);
+            el.style.setProperty('--half-x', `${(toX - fromX) * 0.5}px`);
+            el.style.setProperty('--three-quarter-x', `${(toX - fromX) * 0.75}px`);
+            el.style.setProperty('--quarter-y', `${(endY - startY) * 0.25 + drift}px`);
+            el.style.setProperty('--half-y', `${(endY - startY) * 0.5 - drift}px`);
+            el.style.setProperty('--three-quarter-y', `${(endY - startY) * 0.75 + drift * 0.5}px`);
+            el.style.setProperty('--rot-start', `${startRot}deg`);
+            el.style.setProperty('--rot-mid', `${midRot}deg`);
+            el.style.setProperty('--rot-end', `${endRot}deg`);
+            el.style.setProperty('--duration', `${duration.toFixed(2)}s`);
+            el.style.setProperty('--delay', staggered ? `${randomBetween(-22, -1).toFixed(2)}s` : '0s');
+            el.classList.remove('depth-near', 'depth-mid', 'depth-far');
+            el.classList.add(`depth-${depth}`);
+            el.style.zIndex = depth === 'near' ? '3' : depth === 'mid' ? '2' : '1';
+
+            if (!el.getAttribute('src') || Math.random() > 0.68) {
+                el.setAttribute('src', pickRandom(characterImages));
+            }
+        }
+
+        function createFlyingCharacters() {
+            characterLayer.innerHTML = '';
+            const count = Math.max(7, Math.min(13, Math.floor(window.innerWidth / 150)));
+
+            for (let i = 0; i < count; i++) {
+                const img = document.createElement('img');
+                img.className = 'fly-character';
+                img.alt = '';
+                img.setAttribute('aria-hidden', 'true');
+                img.decoding = 'async';
+                img.loading = 'lazy';
+                applyFlightPath(img, true);
+                img.addEventListener('animationiteration', () => applyFlightPath(img));
+                characterLayer.appendChild(img);
+            }
+        }
+
+        let resizeDebounce;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeDebounce);
+            resizeDebounce = setTimeout(createFlyingCharacters, 240);
+        });
+
+        createFlyingCharacters();
+
+        const predictForm = document.getElementById('predictForm');
+        const resultsDiv = document.getElementById('results');
+        const btn = document.getElementById('predictBtn');
+        const apiMessage = document.getElementById('apiMessage');
+        const confidenceFill = document.getElementById('confidenceFill');
+        const confidenceMeta = document.getElementById('confidenceMeta');
+        const modelVersion = document.getElementById('modelVersion');
+
+        let livePredictTimer = null;
+        let activeRequestController = null;
+
+        function showApiMessage(message) {
+            apiMessage.textContent = message;
+            apiMessage.classList.add('visible');
+        }
+
+        function clearApiMessage() {
+            apiMessage.textContent = '';
+            apiMessage.classList.remove('visible');
+        }
+
+        function buildPayload() {
+            return {
+                "Team": document.getElementById('team').value,
+                "Task Completed": Number(document.getElementById('tasks').value),
+                "Imposter Kills": Number(document.getElementById('kills').value),
+                "Game Length Sec": Number(document.getElementById('gameLength').value)
+            };
+        }
+
+        function isPayloadReady(payload) {
+            return Number.isFinite(payload['Task Completed'])
+                && Number.isFinite(payload['Imposter Kills'])
+                && Number.isFinite(payload['Game Length Sec'])
+                && payload['Task Completed'] >= 0
+                && payload['Imposter Kills'] >= 0
+                && payload['Game Length Sec'] >= 0;
+        }
+
+        function renderPrediction(data) {
+            document.getElementById('res-survival').textContent = `${data.survival_percentage}%`;
+            document.getElementById('res-sabotage').textContent = data.predicted_sabotages_fixed;
+            const confidence = Math.max(0, Math.min(100, Number(data.confidence_score || 0)));
+            const band = String(data.confidence_band || 'Low').toLowerCase();
+            confidenceFill.style.width = `${confidence}%`;
+            confidenceFill.classList.remove('band-high', 'band-medium', 'band-low');
+            confidenceMeta.classList.remove('band-high', 'band-medium', 'band-low');
+            if (band === 'high') {
+                confidenceFill.classList.add('band-high');
+                confidenceMeta.classList.add('band-high');
+            } else if (band === 'medium') {
+                confidenceFill.classList.add('band-medium');
+                confidenceMeta.classList.add('band-medium');
+            } else {
+                confidenceFill.classList.add('band-low');
+                confidenceMeta.classList.add('band-low');
+            }
+            confidenceMeta.textContent = `${data.confidence_band || 'Low'} confidence (${confidence.toFixed(1)}%)`;
+            resultsDiv.classList.add('visible');
+        }
+
+        async function runPrediction(source = 'manual') {
+            const payload = buildPayload();
+            if (!isPayloadReady(payload)) {
+                return;
+            }
+
+            if (activeRequestController) {
+                activeRequestController.abort();
+            }
+            activeRequestController = new AbortController();
+
+            clearApiMessage();
+            btn.textContent = source === 'live' ? 'Simulating...' : 'Analyzing...';
+
+            try {
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload),
+                    signal: activeRequestController.signal
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.status !== 'success') {
+                    showApiMessage(data.message || 'Prediction failed. Check your inputs.');
+                    return;
+                }
+
+                renderPrediction(data);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Fetch error:', error);
+                    showApiMessage('Failed to connect to the API. Is Flask running?');
+                }
+            } finally {
+                btn.textContent = 'Predict Outcome';
+            }
+        }
+
+        function scheduleLivePrediction() {
+            clearTimeout(livePredictTimer);
+            livePredictTimer = setTimeout(() => runPrediction('live'), 320);
+        }
+
+        predictForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await runPrediction('manual');
+        });
+
+        ['team', 'tasks', 'kills', 'gameLength'].forEach((id) => {
+            const input = document.getElementById(id);
+            input.addEventListener('input', scheduleLivePrediction);
+            input.addEventListener('change', scheduleLivePrediction);
+        });
+
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('http://localhost:5000/model-info');
+                const data = await response.json();
+                if (response.ok && data.status === 'success' && data.model_version) {
+                    modelVersion.textContent = `Version ${data.model_version} Beta Testing`;
+                }
+            } catch (error) {
+                console.warn('Model info unavailable:', error);
+            }
+        }
+
+        loadModelInfo();
+    </script>
+
+</body>
+
+</html>
