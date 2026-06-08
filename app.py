@@ -1,17 +1,15 @@
 from datetime import datetime, timezone
 import os
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import joblib
 import pandas as pd
 
-app = Flask(__name__)
-CORS(app)
+from train import train_and_serialize
 
-# Load the trained pipelines into memory
-survive_model = joblib.load('models/survive_model.pkl')
-sabotage_model = joblib.load('models/sabotage_model.pkl')
+app = Flask(__name__, static_folder='.', static_url_path='')
+CORS(app)
 
 MODEL_VERSION = os.getenv('MODEL_VERSION', '1.0.0-beta')
 MODEL_CREATED_AT = os.getenv('MODEL_CREATED_AT', datetime.now(timezone.utc).isoformat())
@@ -19,6 +17,26 @@ MODEL_CREATED_AT = os.getenv('MODEL_CREATED_AT', datetime.now(timezone.utc).isof
 REQUIRED_FIELDS = ['Team', 'Task Completed', 'Imposter Kills', 'Game Length Sec']
 ALLOWED_TEAMS = {'Crewmate', 'Imposter'}
 
+# Global model storage
+survive_model = None
+sabotage_model = None
+
+def ensure_models():
+    """Ensure models exist; train them if missing."""
+    global survive_model, sabotage_model
+    
+    model_dir = 'models'
+    survive_path = os.path.join(model_dir, 'survive_model.pkl')
+    sabotage_path = os.path.join(model_dir, 'sabotage_model.pkl')
+    
+    if not os.path.exists(survive_path) or not os.path.exists(sabotage_path):
+        print("Models not found. Training models...")
+        survive_model, sabotage_model = train_and_serialize()
+    else:
+        survive_model = joblib.load(survive_path)
+        sabotage_model = joblib.load(sabotage_path)
+    
+    print("Models loaded successfully!")
 
 def validate_payload(data):
     if not isinstance(data, dict):
@@ -59,6 +77,16 @@ def build_confidence(survive_prob):
         confidence_band = 'Low'
     return confidence_score, confidence_band
 
+
+@app.route('/', methods=['GET'])
+def serve_home():
+    """Serve the main HTML page."""
+    return send_from_directory('.', 'index.html')
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for monitoring."""
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/model-info', methods=['GET'])
 def model_info():
@@ -114,4 +142,5 @@ def predict():
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
 if __name__ == '__main__':
+    ensure_models()
     app.run(host='0.0.0.0', port=5000, debug=True)

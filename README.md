@@ -200,6 +200,112 @@ Response example:
 }
 ```
 
+### `GET /health`
+
+Health check endpoint for monitoring.
+
+Response example:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## Docker Usage
+
+### Build the Docker image
+
+```bash
+docker build -t among-us-mlops .
+```
+
+### Run the Docker container
+
+```bash
+docker run -p 5000:5000 among-us-mlops
+```
+
+The app will start on `http://127.0.0.1:5000` inside the container and be accessible on `http://localhost:5000`.
+
+### Docker features
+
+- Python 3.11-slim base image for lightweight deployments
+- Models auto-train on startup if missing
+- Frontend served directly from Flask
+- Relative API paths work seamlessly in containerized environments
+
+## Testing
+
+### Install development dependencies
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Run the test suite
+
+```bash
+pytest -q tests/test_app.py
+```
+
+Expected output:
+
+```
+tests/test_app.py::test_health PASSED
+tests/test_app.py::test_model_info PASSED
+tests/test_app.py::test_predict PASSED
+
+3 passed in 3.09s
+```
+
+### Test coverage
+
+- **test_health**: Validates the `GET /health` endpoint returns status='ok'
+- **test_model_info**: Verifies `GET /model-info` returns model metadata with features list
+- **test_predict**: Tests the prediction endpoint with sample payload, validates response structure and value ranges
+
+## Quick Start
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Thanvirassif731/among-us-mlops.git
+   cd among-us-mlops
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the app (models auto-train if missing):**
+   ```bash
+   python app.py
+   ```
+
+4. **Open in browser:**
+   ```
+   http://127.0.0.1:5000
+   ```
+
+Or use Docker:
+
+```bash
+docker build -t among-us-mlops .
+docker run -p 5000:5000 among-us-mlops
+```
+
+## Features
+
+- ✅ Modularized training pipeline for code reusability
+- ✅ Auto-model-training on app startup
+- ✅ Frontend hosted directly from Flask
+- ✅ Docker containerization for reproducible deployments
+- ✅ Comprehensive pytest test suite
+- ✅ Health check endpoint for monitoring
+- ✅ Relative API paths for cross-platform compatibility
+```
+
 ## Frontend features
 
 The UI in `index.html` includes:
