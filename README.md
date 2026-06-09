@@ -216,6 +216,31 @@ The UI in `index.html` includes:
   - amber for medium confidence
   - red for low confidence
 
+  ---
+
+## **GitHub Actions Variables**
+
+- **Secrets (Settings → Secrets and variables → Actions)**
+  - **AWS_ROLE_ARN**: IAM role ARN GitHub Actions will assume (e.g. `arn:aws:iam::123456789012:role/GitHubActionsRole`). Required when using OIDC/assume-role.
+  - **CLOUDFRONT_DISTRIBUTION_ID**: CloudFront distribution ID (optional — used by the invalidate step).
+  - If not using OIDC/assume-role, add these instead:
+    - **AWS_ACCESS_KEY_ID**
+    - **AWS_SECRET_ACCESS_KEY**
+
+- **Repository variables (Settings → Actions → Variables)**
+  - **AWS_REGION**: `us-east-1`
+  - **ECR_REPOSITORY**: `among-us-mlops`
+  - **ECS_SERVICE**: `among-us-mlops-service`
+  - **ECS_CLUSTER**: `among-us-mlops-cluster`
+  - **ECS_TASK_DEFINITION**: `among-us-mlops-task`
+  - **S3_BUCKET**: `among-us-mlops-frontend`
+  - **route53_zone_id** (optional): Route53 hosted zone ID for `thanvirassif.com` (if you have it).
+  - **route53_zone_name** (optional): `thanvirassif.com` — Terraform will look up the zone if `route53_zone_id` is not provided.
+
+Add the Secrets for sensitive credentials and use Variables for non-sensitive defaults so the workflow can deploy, create DNS/certificates, and invalidate CloudFront when configured.
+
+---
+
 ## Backend features
 
 The Flask app in `app.py` includes:
@@ -303,5 +328,3 @@ If you enjoy this course, consider:
 - Book 1:1 guidance via **[Topmate](https://topmate.io/thanvir_assif/)**
 
 Stay tuned for more courses and tutorials!
-
----
