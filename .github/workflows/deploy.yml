@@ -14,7 +14,7 @@ env:
   ECS_SERVICE: among-us-mlops-service
   ECS_CLUSTER: among-us-mlops-cluster
   ECS_TASK_DEFINITION: among-us-mlops-task
-  S3_BUCKET: among-us-mlops-frontend
+  S3_BUCKET: among-us-mlops-frontend-247878535380
 
 jobs:
   build-and-deploy:
@@ -88,7 +88,7 @@ jobs:
       - name: Deployment Summary
         run: |
           echo "=== Deployment Summary ==="
-          echo "Backend image: ${{ steps.docker_build.outputs.image }}"
           echo "Frontend S3 bucket: ${{ env.S3_BUCKET }}"
-          echo "ECS Cluster: ${{ env.ECS_CLUSTER }}"
-          echo "ECS Service: ${{ env.ECS_SERVICE }}"
+        # echo "Backend image: ${{ steps.docker_build.outputs.image }}"
+        # echo "ECS Cluster: ${{ env.ECS_CLUSTER }}"
+        # echo "ECS Service: ${{ env.ECS_SERVICE }}"
